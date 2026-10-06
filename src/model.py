@@ -41,3 +41,37 @@ def get_delivery_locations():
 ]
 
     return restaurants, customers
+
+def calculate_delivery_routes(
+    road_network,
+    customer_restaurants,
+    weight="distance"
+):
+    delivery_routes = {}
+    delivery_distances = {}
+    unreachable_customers = []
+
+    for customer, restaurant in customer_restaurants.items():
+        try:
+            delivery_routes[customer] = nx.shortest_path(
+                road_network,
+                restaurant,
+                customer,
+                weight=weight
+            )
+
+            delivery_distances[customer] = nx.shortest_path_length(
+                road_network,
+                restaurant,
+                customer,
+                weight=weight
+            )
+
+        except nx.NetworkXNoPath:
+            unreachable_customers.append(customer)
+
+    return (
+        delivery_routes,
+        delivery_distances,
+        unreachable_customers
+    )
