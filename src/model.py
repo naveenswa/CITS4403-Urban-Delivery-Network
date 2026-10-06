@@ -1,3 +1,5 @@
+from collections import Counter
+
 import random
 
 import networkx as nx
@@ -75,3 +77,20 @@ def calculate_delivery_routes(
         delivery_distances,
         unreachable_customers
     )
+
+def count_road_usage(delivery_routes):
+    road_usage = Counter()
+
+    for route in delivery_routes.values():
+        for position in range(len(route) - 1):
+            first_node = route[position]
+            second_node = route[position + 1]
+
+            road = tuple(sorted([
+                first_node,
+                second_node
+            ]))
+
+            road_usage[road] += 1
+
+    return road_usage
