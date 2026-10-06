@@ -94,3 +94,41 @@ def count_road_usage(delivery_routes):
             road_usage[road] += 1
 
     return road_usage
+
+def select_random_roads(
+    road_network,
+    number_of_closures,
+    seed
+):
+    random_generator = random.Random(seed)
+
+    random_closed_roads = random_generator.sample(
+        list(road_network.edges),
+        number_of_closures
+    )
+
+    return random_closed_roads
+
+
+def select_high_use_roads(
+    road_usage,
+    number_of_closures
+):
+    highest_use_roads = []
+
+    for road, usage_count in road_usage.most_common(
+        number_of_closures
+    ):
+        highest_use_roads.append(road)
+
+    return highest_use_roads
+
+
+def close_roads(
+    road_network,
+    roads_to_close
+):
+    closed_network = road_network.copy()
+    closed_network.remove_edges_from(roads_to_close)
+
+    return closed_network
