@@ -132,3 +132,61 @@ def close_roads(
     closed_network.remove_edges_from(roads_to_close)
 
     return closed_network
+
+def calculate_scenario_results(
+    baseline_distances,
+    scenario_distances,
+    total_customers
+):
+    reachable_count = len(scenario_distances)
+    unreachable_count = total_customers - reachable_count
+
+    reachable_percentage = (
+        reachable_count / total_customers
+    ) * 100
+
+    if reachable_count == 0:
+        return {
+            "average_distance": None,
+            "average_distance_increase": None,
+            "distance_increase_percentage": None,
+            "reachable_percentage": 0,
+            "unreachable_count": unreachable_count
+        }
+
+    average_scenario_distance = (
+        sum(scenario_distances.values())
+        / reachable_count
+    )
+
+    comparable_baseline_distances = []
+
+    for customer in scenario_distances:
+        comparable_baseline_distances.append(
+            baseline_distances[customer]
+        )
+
+    average_comparable_baseline = (
+        sum(comparable_baseline_distances)
+        / reachable_count
+    )
+
+    average_distance_increase = (
+        average_scenario_distance
+        - average_comparable_baseline
+    )
+
+    distance_increase_percentage = (
+        average_distance_increase
+        / average_comparable_baseline
+    ) * 100
+
+    return {
+        "average_distance": average_scenario_distance,
+        "average_distance_increase": average_distance_increase,
+        "distance_increase_percentage": (
+            distance_increase_percentage
+        ),
+        "reachable_percentage": reachable_percentage,
+        "unreachable_count": unreachable_count
+    }
