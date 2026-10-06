@@ -190,3 +190,34 @@ def calculate_scenario_results(
         "reachable_percentage": reachable_percentage,
         "unreachable_count": unreachable_count
     }
+
+def apply_congestion(
+    road_network,
+    congested_roads,
+    congestion_multiplier
+):
+    congestion_network = road_network.copy()
+
+    for first_node, second_node in congestion_network.edges:
+        normal_distance = congestion_network.edges[
+            first_node,
+            second_node
+        ]["distance"]
+
+        congestion_network.edges[
+            first_node,
+            second_node
+        ]["travel_cost"] = normal_distance
+
+    for road in congested_roads:
+        normal_distance = congestion_network.edges[
+            road
+        ]["distance"]
+
+        congestion_network.edges[
+            road
+        ]["travel_cost"] = (
+            normal_distance * congestion_multiplier
+        )
+
+    return congestion_network
