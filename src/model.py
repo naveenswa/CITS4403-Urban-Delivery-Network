@@ -1,0 +1,213 @@
+from collections import Counter
+import random
+
+import networkx as nx
+
+
+def create_road_network(rows=6, columns=6, seed=42):
+    random_generator = random.Random(seed)
+    road_network = nx.grid_2d_graph(rows, columns)
+
+    for first_node, second_node in road_network.edges:
+        road_network.edges[first_node, second_node]["distance"] = (
+            random_generator.randint(1, 5)
+        )
+
+    return road_network
+
+
+def get_delivery_locations():
+    restaurants = [
+        (0, 0),
+        (5, 5),
+        (0, 5)
+    ]
+
+    customers = [
+        (0, 2),
+        (0, 4),
+        (1, 1),
+        (1, 3),
+        (1, 4),
+        (2, 0),
+        (2, 2),
+        (2, 5),
+        (3, 0),
+        (3, 3),
+        (4, 1),
+        (4, 2),
+        (4, 4),
+        (5, 2),
+        (5, 4)
+    ]
+
+    return restaurants, customers
+
+
+def assign_customers_to_restaurants(
+    road_network,
+    restaurants,
+    customers
+):
+    customer_restaurants = {}
+
+    for customer in customers:
+        restaurant_distances = {}
+
+        for restaurant in restaurants:
+            distance = nx.shortest_path_length(
+                road_network,
+                restaurant,
+                customer,
+                weight="distance"
+            )
+            restaurant_distances[restaurant] = distance
+
+        nearest_restaurant = min(
+            restaurant_distances,
+            key=restaurant_distances.get
+        )
+        customer_restaurants[customer] = nearest_restaurant
+
+    return customer_restaurants
+
+
+def calculate_delivery_routes(
+    road_network,
+    customer_restaurants,
+    weight="distance"
+):
+    delivery_routes = {}
+    delivery_distances = {}
+    unreachable_customers = []
+
+    for customer, restaurant in customer_restaurants.items():
+        try:
+            delivery_routes[customer] = nx.shortest_path(
+                road_network,
+                restaurant,
+                customer,
+                weight=weight
+            )
+            delivery_distances[customer] = nx.shortest_path_length(
+                road_network,
+                restaurant,
+                customer,
+                weight=weight
+            )
+        except nx.NetworkXNoPath:
+            unreachable_customers.append(customer)
+
+    return delivery_routes, delivery_distances, unreachable_customers
+
+
+def count_road_usage(delivery_routes):
+    road_usage = Counter()
+
+    for route in delivery_routes.values():
+        for position in range(len(route) - 1):
+            first_node = route[position]
+            second_node = route[position + 1]
+            road = tuple(sorted([first_node, second_node]))
+            road_usage[road] += 1
+
+    return road_usage
+
+
+def select_random_roads(road_network, number_of_closures, seed):
+    random_generator = random.Random(seed)
+
+    return random_generator.sample(
+        list(road_network.edges),
+        number_of_closures
+    )
+
+
+def select_high_use_roads(road_usage, number_of_closures):
+    highest_use_roads = []
+
+    for road, usage_count in road_usage.most_common(number_of_closures):
+        highest_use_roads.append(road)
+
+    return highest_use_roads
+
+
+def close_roads(road_network, roads_to_close):
+    closed_network = road_network.copy()
+    closed_network.remove_edges_from(roads_to_close)
+
+    return closed_network
+
+
+def calculate_scenario_results(
+    baseline_distances,
+    scenario_distances,
+    total_customers
+):
+    reachable_count = len(scenario_distances)
+    unreachable_count = total_customers - reachable_count
+    reachable_percentage = (reachable_count / total_customers) * 100
+
+    if reachable_count == 0:
+        return {
+            "average_distance": None,
+            "average_distance_increase": None,
+            "distance_increase_percentage": None,
+            "reachable_percentage": 0,
+            "unreachable_count": unreachable_count
+        }
+
+    average_scenario_distance = (
+        sum(scenario_distances.values()) / reachable_count
+    )
+
+    comparable_baseline_distances = []
+
+    for customer in scenario_distances:
+        comparable_baseline_distances.append(
+            baseline_distances[customer]
+        )
+
+    average_comparable_baseline = (
+        sum(comparable_baseline_distances) / reachable_count
+    )
+    average_distance_increase = (
+        average_scenario_distance - average_comparable_baseline
+    )
+    distance_increase_percentage = (
+        average_distance_increase / average_comparable_baseline
+    ) * 100
+
+    return {
+        "average_distance": average_scenario_distance,
+        "average_distance_increase": average_distance_increase,
+        "distance_increase_percentage": distance_increase_percentage,
+        "reachable_percentage": reachable_percentage,
+        "unreachable_count": unreachable_count
+    }
+
+
+def apply_congestion(
+    road_network,
+    congested_roads,
+    congestion_multiplier
+):
+    congestion_network = road_network.copy()
+
+    for first_node, second_node in congestion_network.edges:
+        normal_distance = congestion_network.edges[
+            first_node,
+            second_node
+        ]["distance"]
+        congestion_network.edges[
+            first_node,
+            second_node
+        ]["travel_cost"] = normal_distance
+
+    for road in congested_roads:
+        normal_distance = congestion_network.edges[road]["distance"]
+        congestion_network.edges[road]["travel_cost"] = (
+            normal_distance * congestion_multiplier
+        )
+
+    return congestion_network
