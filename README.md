@@ -1,85 +1,87 @@
-# Urban Delivery Network Under Road Closures and Congestion
+# Urban Delivery Network Under Road Closures
 
-## Proposed System
+## Project Overview
 
-This project will model a simplified urban road network used for restaurant deliveries.
-
-Restaurants, customers and intersections will be represented as nodes. Roads will be represented as weighted edges, with each weight representing road distance.
-
-## Motivation
-
-Road closures can increase delivery distances or make customers unreachable. The effect may depend on whether randomly selected roads or frequently used roads are closed.
-
-Traffic congestion can also affect deliveries without completely closing a road. A congested road remains available, but its higher travel cost may cause longer delivery times or make another route more suitable.
+This project models restaurant deliveries on a simplified urban road network. The aim is to compare the effect of random road closures with closures of roads used by many delivery routes.
 
 ## Research Question
 
-How do random road closures, closures of frequently used roads and traffic congestion affect delivery distance, travel cost and the percentage of customers remaining reachable in a simplified urban road network?
+How do random road closures and closures of frequently used roads affect average delivery distance and the percentage of customers remaining reachable?
 
 ## Hypothesis
 
-Closures of frequently used roads are expected to cause a greater increase in average delivery distance and a larger reduction in customer accessibility than random road closures.
+Closing frequently used roads will cause more disruption than closing the same number of randomly selected roads.
 
-Traffic congestion is expected to increase delivery travel cost and may cause some deliveries to use alternative routes. However, congestion alone is not expected to make customers unreachable because congested roads remain open.
+## Model
 
-## Modelling Approach
+The model uses a weighted undirected graph created with Python and NetworkX.
 
-The project will use a weighted, undirected graph implemented in Python using NetworkX and Jupyter Notebook.
+- 36 nodes arranged as a 6 x 6 road network
+- 60 roads
+- 3 restaurant locations
+- 15 customer locations
+- Road distances between 1 and 5 units
+- Fixed random seeds for reproducibility
 
-- Nodes: restaurants, customers and intersections
-- Edges: roads
-- Distance: physical road distance
-- Congestion multiplier: increased cost caused by congestion
-- Routes: lowest-cost available paths
+Intersections, restaurants and customers are nodes. Roads are edges, and distance is the edge weight.
 
-For the congestion experiment, travel cost will be calculated as:
+Each customer is assigned to the restaurant with the shortest weighted distance. Drivers then use the shortest available route.
 
-`travel cost = road distance × congestion multiplier`
+## Road Usage
 
-The initial model assumes that roads can be travelled in both directions, road distances remain fixed, and drivers use the lowest-cost available route.
+The baseline delivery routes are calculated before any disruption. Road usage is found by counting how many baseline routes contain each road. Roads with the highest counts are treated as the highest se roads.
 
-The project will not simulate how traffic jams form. Congestion will be represented as an increased travel cost on selected roads.
+## Closure Experiments
 
-## Proposed Experiment
+The model compares random closures and highest-use road closures at these levels:
 
-1. Create a synthetic connected road network.
-2. Select restaurant and customer nodes.
-3. Assign each customer to the nearest restaurant.
-4. Calculate the baseline shortest delivery routes.
-5. Count how many baseline routes use each road.
-6. Rank roads according to their usage.
-7. Close roads randomly and recalculate the routes.
-8. Restore the original network.
-9. Close the same number of highest-use roads.
-10. Recalculate the routes and compare the results.
-11. Restore the original network again.
-12. Apply congestion to selected roads by increasing their travel cost without closing them.
-13. Recalculate the lowest-cost delivery routes.
-14. Compare the congestion results with the baseline and closure results.
-15. Repeat the random experiments using multiple random seeds.
+- 1, 2, 3, 4, 5, 6, 8 and 10 roads
 
-## Measurements
+Random closures are repeated 100 times using different seeds. The model records:
 
 - Average delivery-distance increase
-- Average travel-cost increase under congestion
+- Standard deviation across random runs
 - Percentage of customers remaining reachable
-- Number of delivery routes that change
-- Average and variation across repeated random experiments
+- Number of unreachable customers
 
-## Qualitative Analysis
+Unreachable customers are reported separately and are not included in the average distance calculation.
 
-Network diagrams will show normal delivery routes, randomly closed roads, closed frequently used roads, congested roads, alternative routes and disconnected customers.
+## Traffic Congestion Case
 
-## Possible Extension
+A separate test applies congestion to the three highest-use roads. Congestion increases travel cost but does not close the road. Drivers can change routes when another route has a lower total cost.
 
-If the core model works, the project may compare random road repair with repairing the highest-use closed roads first.
+This is a simplified travel-cost measure and does not represent exact delivery time.
 
-## Initial Limitations
+## Main Results
 
-- The initial network will be synthetic.
-- All roads will be treated as two-way.
-- Congestion will be represented using a simplified travel-cost multiplier rather than a dynamic traffic-flow simulation.
-- Weather and individual driver behaviour will not initially be included.
-- Drivers will always use the lowest-cost available route.
+Highest use road closures caused a larger distance increase than random closures at every closure level in the main experiment.
 
+With one road closed, the distance increase was 18.42% for the highest-use closure and 3.53% for the random average.
 
+When four highest use roads were closed, customer reachability dropped to 46.67%. The random experiments still had an average reachability of 100% at the same closure level.
+
+At a congestion multiplier of 3.0, travel cost increased by 23.68%, four delivery routes changed, and all customers remained reachable.
+
+## Sensitivity Test
+
+The four road comparison was repeated using ten different road-distance seeds. Highest-use closures caused a larger distance increase than random closures in all ten tests.
+
+Highest use closures reduced customer reachability in two of the ten seeds. This shows that the distance result was consistent, while disconnection depended more on the specific road weights and route structure.
+
+## Repository Structure
+
+- `src/model.py` — road network and delivery model
+- `src/experiments.py` — repeated random experiments
+- `notebooks/final_analysis.ipynb` — complete analysis
+- `results/` — experiment results in CSV format
+- `figures/` — graphs and network diagrams
+- `tests/` — automated tests
+
+## Running the Project
+
+Open `notebooks/final_analysis.ipynb` in Google Colab and run the cells in order. When prompted, upload `src/model.py` and `src/experiments.py`.
+
+The automated tests can also be run with:
+
+```bash
+python -m pytest
