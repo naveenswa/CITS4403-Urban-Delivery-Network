@@ -5,6 +5,7 @@ import networkx as nx
 
 
 def create_road_network(rows=6, columns=6, seed=42):
+    """Create a weighted grid road network with reproducible distances."""
     random_generator = random.Random(seed)
     road_network = nx.grid_2d_graph(rows, columns)
 
@@ -17,6 +18,7 @@ def create_road_network(rows=6, columns=6, seed=42):
 
 
 def get_delivery_locations():
+    """Return the fixed restaurant and customer locations used in the study."""
     restaurants = [
         (0, 0),
         (5, 5),
@@ -49,6 +51,7 @@ def assign_customers_to_restaurants(
     restaurants,
     customers
 ):
+    """Assign every customer to its nearest restaurant before disruption."""
     customer_restaurants = {}
 
     for customer in customers:
@@ -77,6 +80,7 @@ def calculate_delivery_routes(
     customer_restaurants,
     weight="distance"
 ):
+    """Calculate shortest routes and list customers with no available path."""
     delivery_routes = {}
     delivery_distances = {}
     unreachable_customers = []
@@ -102,6 +106,7 @@ def calculate_delivery_routes(
 
 
 def count_road_usage(delivery_routes):
+    """Count how many baseline delivery routes contain each road."""
     road_usage = Counter()
 
     for route in delivery_routes.values():
@@ -115,6 +120,13 @@ def count_road_usage(delivery_routes):
 
 
 def select_random_roads(road_network, number_of_closures, seed):
+    """Select distinct roads using a reproducible random seed."""
+    if number_of_closures < 0:
+        raise ValueError("number_of_closures cannot be negative")
+
+    if number_of_closures > road_network.number_of_edges():
+        raise ValueError("number_of_closures exceeds the number of roads")
+
     random_generator = random.Random(seed)
 
     return random_generator.sample(
@@ -124,15 +136,35 @@ def select_random_roads(road_network, number_of_closures, seed):
 
 
 def select_high_use_roads(road_usage, number_of_closures):
-    highest_use_roads = []
+    """Rank roads by usage, then by road coordinates to resolve ties."""
+    ranked_roads = sorted(
+        road_usage.items(),
+        key=lambda item: (-item[1], item[0])
+    )
 
-    for road, usage_count in road_usage.most_common(number_of_closures):
-        highest_use_roads.append(road)
+    return [
+        road
+        for road, usage_count in ranked_roads[:number_of_closures]
+    ]
 
-    return highest_use_roads
+
+def get_tied_roads_at_rank(road_usage, rank):
+    """Return every road tied at a one-based position in the usage ranking."""
+    if rank < 1 or rank > len(road_usage):
+        raise ValueError("rank must refer to a road in road_usage")
+
+    ranked_counts = sorted(road_usage.values(), reverse=True)
+    cutoff_usage = ranked_counts[rank - 1]
+
+    return sorted([
+        road
+        for road, usage_count in road_usage.items()
+        if usage_count == cutoff_usage
+    ])
 
 
 def close_roads(road_network, roads_to_close):
+    """Return a copied network with the selected roads removed."""
     closed_network = road_network.copy()
     closed_network.remove_edges_from(roads_to_close)
 
@@ -144,6 +176,7 @@ def calculate_scenario_results(
     scenario_distances,
     total_customers
 ):
+    """Compare scenario distances with the same customers at baseline."""
     reachable_count = len(scenario_distances)
     unreachable_count = total_customers - reachable_count
     reachable_percentage = (reachable_count / total_customers) * 100
@@ -187,27 +220,62 @@ def calculate_scenario_results(
     }
 
 
-def apply_congestion(
+def reassign_customers_to_available_restaurants(
     road_network,
-    congested_roads,
-    congestion_multiplier
+    restaurants,
+    customers,
+    weight="distance"
 ):
-    congestion_network = road_network.copy()
+    """Assign each customer to the nearest restaurant that still has a path."""
+    new_assignments = {}
+    unreachable_customers = []
 
-    for first_node, second_node in congestion_network.edges:
-        normal_distance = congestion_network.edges[
+    for customer in customers:
+        available_restaurants = []
+
+        for restaurant in restaurants:
+            try:
+                distance = nx.shortest_path_length(
+                    road_network,
+                    restaurant,
+                    customer,
+                    weight=weight
+                )
+                available_restaurants.append((distance, restaurant))
+            except nx.NetworkXNoPath:
+                continue
+
+        if available_restaurants:
+            distance, nearest_restaurant = min(available_restaurants)
+            new_assignments[customer] = nearest_restaurant
+        else:
+            unreachable_customers.append(customer)
+
+    return new_assignments, unreachable_customers
+
+
+def apply_travel_cost_multiplier(
+    road_network,
+    adjusted_roads,
+    cost_multiplier
+):
+    """Increase static edge costs while keeping every road open."""
+    travel_cost_network = road_network.copy()
+
+    for first_node, second_node in travel_cost_network.edges:
+        normal_distance = travel_cost_network.edges[
             first_node,
             second_node
         ]["distance"]
-        congestion_network.edges[
+        travel_cost_network.edges[
             first_node,
             second_node
         ]["travel_cost"] = normal_distance
 
-    for road in congested_roads:
-        normal_distance = congestion_network.edges[road]["distance"]
-        congestion_network.edges[road]["travel_cost"] = (
-            normal_distance * congestion_multiplier
+    for road in adjusted_roads:
+        normal_distance = travel_cost_network.edges[road]["distance"]
+        travel_cost_network.edges[road]["travel_cost"] = (
+            normal_distance * cost_multiplier
         )
 
-    return congestion_network
+    return travel_cost_network

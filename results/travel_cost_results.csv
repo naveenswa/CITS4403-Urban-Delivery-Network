@@ -1,4 +1,4 @@
-congestion_multiplier,travel_cost_increase,routes_changed,customers_reachable
+cost_multiplier,travel_cost_increase,routes_changed,customers_reachable
 1.0,0.0,0,100.0
 1.25,4.6053,0,100.0
 1.5,9.2105,1,100.0

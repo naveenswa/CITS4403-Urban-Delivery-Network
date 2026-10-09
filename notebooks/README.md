@@ -1,3 +1,6 @@
-# Project Notebooks
+# Project notebooks
 
-This folder contains the notebooks used to develop, test and demonstrate the urban delivery network model.
+- `final_analysis.ipynb` is the final reproducible walkthrough.
+- `checkpoint2_demo.ipynb` is retained as evidence of the earlier development stage.
+
+Run the final notebook from the repository or start Jupyter in the main project folder.
