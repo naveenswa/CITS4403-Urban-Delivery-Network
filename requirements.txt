@@ -1,6 +1,7 @@
-networkx
-matplotlib
-numpy
-pandas
-jupyter
-pytest
+networkx>=3.2,<4
+matplotlib>=3.8,<4
+numpy>=1.26,<3
+pandas>=2.1,<3
+jupyter>=1.0,<2
+pytest>=8,<10
+nbformat>=5.9,<6
